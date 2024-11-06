@@ -12,12 +12,12 @@ import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalTime;
 
-public class ConfigurableApiSimulation extends Simulation {
+public class ConfigurableApiWarmupSimulation extends Simulation {
 
     // Load configuration properties for easy host management
     private static Properties loadProperties() {
         Properties properties = new Properties();
-        try (InputStream input = ConfigurableApiSimulation.class.getClassLoader().getResourceAsStream("config.properties")) {
+        try (InputStream input = ConfigurableApiWarmupSimulation.class.getClassLoader().getResourceAsStream("config.properties")) {
             if (input == null) {
                 System.out.println("Sorry, unable to find config.properties");
                 return properties;
@@ -52,16 +52,16 @@ public class ConfigurableApiSimulation extends Simulation {
                     .header("Content-Type", "application/json")
                     .check(status().saveAs("httpStatus"))
                     .check(bodyString().saveAs("responseBody"))
+    )
+    .pause(Duration.ofMillis(10))
+    .doIf(session -> session.getString("httpStatus").equals("201")).then(
+        exec(
+                http("consulta")
+                        .get("#{payload}")
+                        .check(status().is(200))
+                        .check(bodyString().saveAs("consultaResponse"))
+        )
     );
-//     .pause(Duration.ofMillis(10))
-//     .doIf(session -> session.getString("httpStatus").equals("201")).then(
-//         exec(
-//                 http("consulta")
-//                         .get("/users/#{payload}")
-//                         .check(status().is(200))
-//                         .check(bodyString().saveAs("consultaResponse"))
-//         )
-//     );
 
     ChainBuilder userSearch = exec(
             feed(buscaFeeder),
@@ -85,19 +85,19 @@ public class ConfigurableApiSimulation extends Simulation {
     {
         setUp(
                 createUsers.injectOpen(
-                        constantUsersPerSec(2).during(Duration.ofSeconds(10)),
-                        constantUsersPerSec(5).during(Duration.ofSeconds(15)).randomized(),
+                        constantUsersPerSec(2).during(Duration.ofSeconds(5)),
+                        constantUsersPerSec(5).during(Duration.ofSeconds(10)).randomized(),
 
-                        rampUsersPerSec(6).to(600).during(Duration.ofMinutes(3))
+                        rampUsersPerSec(6).to(60).during(Duration.ofSeconds(30))
                 ),
                 searchdUsers.injectOpen(
-                        constantUsersPerSec(2).during(Duration.ofSeconds(25)),
-                        rampUsersPerSec(6).to(100).during(Duration.ofMinutes(3))
+                        constantUsersPerSec(2).during(Duration.ofSeconds(10)),
+                        rampUsersPerSec(6).to(10).during(Duration.ofSeconds(30))
                 )
                 ,
                 searchInvalidUsers.injectOpen(
-                        constantUsersPerSec(2).during(Duration.ofSeconds(25)),
-                        rampUsersPerSec(6).to(100).during(Duration.ofMinutes(3))
+                        constantUsersPerSec(2).during(Duration.ofSeconds(10)),
+                        rampUsersPerSec(6).to(10).during(Duration.ofSeconds(30))
                 )
         ).protocols(httpProtocol);
     }
