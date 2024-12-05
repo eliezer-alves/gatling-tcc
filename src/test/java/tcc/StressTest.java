@@ -12,12 +12,12 @@ import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalTime;
 
-public class ConfigurableApiWarmupSimulation extends Simulation {
+public class StressTest extends Simulation {
 
     // Load configuration properties for easy host management
     private static Properties loadProperties() {
         Properties properties = new Properties();
-        try (InputStream input = ConfigurableApiWarmupSimulation.class.getClassLoader().getResourceAsStream("config.properties")) {
+        try (InputStream input = StressTest.class.getClassLoader().getResourceAsStream("config.properties")) {
             if (input == null) {
                 System.out.println("Sorry, unable to find config.properties");
                 return properties;
@@ -86,16 +86,16 @@ public class ConfigurableApiWarmupSimulation extends Simulation {
                         constantUsersPerSec(2).during(Duration.ofSeconds(5)),
                         constantUsersPerSec(5).during(Duration.ofSeconds(10)).randomized(),
 
-                        rampUsersPerSec(6).to(6000).during(Duration.ofSeconds(30))
+                        rampUsersPerSec(6).to(600).during(Duration.ofSeconds(60))
                 ),
                 searchdUsers.injectOpen(
                         constantUsersPerSec(2).during(Duration.ofSeconds(10)),
-                        rampUsersPerSec(6).to(3000).during(Duration.ofSeconds(30))
+                        rampUsersPerSec(6).to(100).during(Duration.ofSeconds(60))
                 )
                 ,
                 searchInvalidUsers.injectOpen(
                         constantUsersPerSec(2).during(Duration.ofSeconds(10)),
-                        rampUsersPerSec(6).to(3000).during(Duration.ofSeconds(30))
+                        rampUsersPerSec(6).to(100).during(Duration.ofSeconds(60))
                 )
         ).protocols(httpProtocol);
     }

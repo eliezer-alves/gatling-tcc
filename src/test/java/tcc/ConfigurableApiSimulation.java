@@ -37,10 +37,6 @@ public class ConfigurableApiSimulation extends Simulation {
             .baseUrl(baseUrl)
             .userAgentHeader(baseUrl + " - " + currentTime);
 
-//     HttpProtocolBuilder httpProtocol = http
-//             .baseUrl(baseUrl)
-//             .userAgentHeader("TCC - 2024");
-
     FeederBuilder<String> usersFeeder = tsv("users-payload.tsv").circular();
     FeederBuilder<String> buscaFeeder = tsv("termos-busca.tsv").circular();
 
@@ -52,16 +48,19 @@ public class ConfigurableApiSimulation extends Simulation {
                     .header("Content-Type", "application/json")
                     .check(status().saveAs("httpStatus"))
                     .check(bodyString().saveAs("responseBody"))
+                    .checkIf(session -> session.getString("httpStatus").equals("201")).then(
+                            header("Location").saveAs("location")
+                    )
+    )
+    .pause(Duration.ofMillis(10))
+    .doIf(session -> session.contains("location")).then(
+        exec(
+                http("consulta")
+                        .get(session -> session.getString("location"))
+                        .check(status().is(200))
+                        .check(bodyString().saveAs("consultaResponse"))
+        )
     );
-//     .pause(Duration.ofMillis(10))
-//     .doIf(session -> session.getString("httpStatus").equals("201")).then(
-//         exec(
-//                 http("consulta")
-//                         .get("/users/#{payload}")
-//                         .check(status().is(200))
-//                         .check(bodyString().saveAs("consultaResponse"))
-//         )
-//     );
 
     ChainBuilder userSearch = exec(
             feed(buscaFeeder),
